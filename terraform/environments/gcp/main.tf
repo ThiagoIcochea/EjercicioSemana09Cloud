@@ -1,3 +1,5 @@
+# Autor: Thiago Paolo Icochea Rodriguez — Servicios Cloud, Sección 42905 (UTP)
+# Desarrollado con apoyo de Claude (Anthropic), modelo Claude Opus 5.5.
 terraform {
   required_version = ">= 1.7.0"
 

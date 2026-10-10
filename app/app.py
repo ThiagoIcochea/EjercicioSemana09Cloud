@@ -1,5 +1,8 @@
 """Servicio mínimo que corre en cada VM, contenedor y pod.
 
+Autor: Thiago Paolo Icochea Rodriguez — Servicios Cloud, Sección 42905 (UTP).
+Desarrollado con apoyo de Claude (Anthropic), modelo Claude Opus 5.5.
+
 Responde con la identidad del nodo para comprobar que el orquestador
 desplegó la réplica correcta en cada nube. Solo usa la biblioteca estándar.
 """
@@ -9,11 +12,13 @@ import socket
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 PORT = int(os.environ.get("PORT", "8080"))
+AUTHOR = "Thiago Paolo Icochea Rodriguez"
 
 
 def identity():
     return {
         "service": "semana09-app",
+        "author": AUTHOR,
         "cloud": os.environ.get("CLOUD_PROVIDER", "unknown"),
         "vm_name": os.environ.get("VM_NAME", socket.gethostname()),
         "role": os.environ.get("VM_ROLE", "generic"),

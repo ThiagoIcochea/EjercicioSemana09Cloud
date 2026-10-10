@@ -1,5 +1,12 @@
 # Ejercicio Semana 09 — Orquestador multinube con Terraform
 
+| | |
+|---|---|
+| **Autor** | Thiago Paolo Icochea Rodriguez |
+| **Curso** | Servicios Cloud — Sección 42905 |
+| **Universidad** | Universidad Tecnológica del Perú (UTP) |
+| **Herramienta de IA utilizada** | Claude (Anthropic), modelo Claude Opus 5.5 |
+
 Orquestador de infraestructura que replica la **misma estructura** en distintas nubes:
 
 - **32 máquinas virtuales** (por defecto 8 `web` + 8 `api` + 8 `worker` + 8 `data`)
@@ -82,3 +89,11 @@ kubectl apply -k ../../../k8s/overlays/gcp
 | Kubernetes | CI, job `kubernetes` (kind) | Despliegue real del overlay local y validación de los overlays AWS/GCP contra el API server |
 
 En cada push a `main`, la imagen se publica en `ghcr.io/thiagoicochea/ejerciciosemana09cloud`, que es la que usan por defecto las VMs y los overlays de nube.
+
+## Uso de inteligencia artificial
+
+Este trabajo se desarrolló con apoyo de **Claude (Anthropic), modelo Claude Opus 5.5**, que asistió en la generación del código Terraform, los manifiestos de Kubernetes, la aplicación contenedorizada, el pipeline de GitHub Actions y esta documentación. El autor revisó el resultado, ejecutó las pruebas y es responsable de la entrega.
+
+---
+
+**Autor:** Thiago Paolo Icochea Rodriguez · Servicios Cloud, Sección 42905 · UTP

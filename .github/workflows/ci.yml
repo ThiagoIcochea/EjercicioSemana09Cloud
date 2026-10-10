@@ -1,4 +1,7 @@
+# Autor: Thiago Paolo Icochea Rodriguez — Servicios Cloud, Sección 42905 (UTP)
+# Desarrollado con apoyo de Claude (Anthropic), modelo Claude Opus 5.5.
 name: CI orquestador multinube
+run-name: "CI multinube — Thiago Paolo Icochea Rodriguez (${{ github.event_name }})"
 
 on:
   push:
@@ -12,6 +15,7 @@ permissions:
 env:
   TF_VERSION: 1.9.8
   IMAGE_LOCAL: semana09-app:local
+  AUTOR: Thiago Paolo Icochea Rodriguez
 
 jobs:
   app:
@@ -77,7 +81,16 @@ jobs:
       # sin necesidad de credenciales de AWS/GCP.
       - name: terraform test (plan con mocks)
         if: matrix.env != 'local-docker'
-        run: terraform test -verbose
+        run: |
+          set -o pipefail
+          terraform test -no-color | tee /tmp/tftest.log
+          {
+            echo "## terraform test — ${{ matrix.env }}"
+            echo "**Autor:** $AUTOR"
+            echo '```'
+            cat /tmp/tftest.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
   docker-fleet:
     name: 32 VMs en Docker (terraform apply)
@@ -91,7 +104,16 @@ jobs:
           terraform_wrapper: false
 
       - name: Desplegar, verificar y destruir la flota
-        run: bash scripts/test-local.sh
+        run: |
+          set -o pipefail
+          bash scripts/test-local.sh | tee /tmp/fleet.log
+          {
+            echo "## Flota de 32 VMs en Docker"
+            echo "**Autor:** $AUTOR · Servicios Cloud, Sección 42905 · IA: Claude (Anthropic), Claude Opus 5.5"
+            echo '```'
+            grep -E '==>|  OK|sanos' /tmp/fleet.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
   kubernetes:
     name: Kubernetes (kind) + overlays AWS/GCP
@@ -122,6 +144,16 @@ jobs:
           sleep 5
           curl -fsS localhost:9090/ | tee /tmp/k8s.json
           grep -q '"cloud": "kind-local"' /tmp/k8s.json
+          grep -q "$AUTOR" /tmp/k8s.json
+          {
+            echo "## Kubernetes (kind)"
+            echo "**Autor:** $AUTOR"
+            echo '```'
+            kubectl -n semana09 get deploy,pods,svc
+            echo
+            cat /tmp/k8s.json
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Validar overlays AWS y GCP contra el API server
         run: |

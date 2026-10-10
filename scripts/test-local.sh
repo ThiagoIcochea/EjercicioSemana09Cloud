@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Autor: Thiago Paolo Icochea Rodriguez — Servicios Cloud, Sección 42905 (UTP)
 # Prueba de punta a punta con Docker:
 #   1. construye la imagen de la app
 #   2. Terraform crea la flota de 32 "VMs" (contenedores)

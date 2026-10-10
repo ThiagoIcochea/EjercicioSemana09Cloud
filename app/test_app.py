@@ -30,6 +30,7 @@ class AppTest(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertEqual(body["service"], "semana09-app")
         self.assertIn("role", body)
+        self.assertEqual(body["author"], "Thiago Paolo Icochea Rodriguez")
 
     def test_not_found(self):
         with self.assertRaises(urllib.error.HTTPError) as ctx:
