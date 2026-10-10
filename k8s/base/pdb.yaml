@@ -1,0 +1,9 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: semana09-app
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: semana09-app

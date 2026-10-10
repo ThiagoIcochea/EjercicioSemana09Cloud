@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../base
+images:
+  - name: semana09-app
+    newName: semana09-app
+    newTag: local
+configMapGenerator:
+  - name: semana09-config
+    behavior: replace
+    literals:
+      - CLOUD_PROVIDER=kind-local
+patches:
+  - path: local-patch.yaml

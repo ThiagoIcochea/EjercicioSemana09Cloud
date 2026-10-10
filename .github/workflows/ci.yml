@@ -1,0 +1,132 @@
+name: CI orquestador multinube
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  TF_VERSION: 1.9.8
+  IMAGE_LOCAL: semana09-app:local
+
+jobs:
+  app:
+    name: App y contenedor Docker
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Pruebas unitarias
+        working-directory: app
+        run: python3 -m unittest -v test_app.py
+
+      - name: Construir imagen
+        run: docker build -t "$IMAGE_LOCAL" app
+
+      - name: Probar contenedor
+        run: |
+          docker run -d --name smoke -p 8080:8080 -e CLOUD_PROVIDER=ci "$IMAGE_LOCAL"
+          for i in $(seq 1 20); do curl -fsS localhost:8080/healthz && break; sleep 1; done
+          curl -fsS localhost:8080/ | tee /tmp/out.json
+          grep -q '"cloud": "ci"' /tmp/out.json
+
+      - name: Publicar en GHCR (solo main)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          IMAGE="ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')"
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          docker tag "$IMAGE_LOCAL" "$IMAGE:latest"
+          docker tag "$IMAGE_LOCAL" "$IMAGE:${{ github.sha }}"
+          docker push "$IMAGE:latest"
+          docker push "$IMAGE:${{ github.sha }}"
+
+  terraform:
+    name: Terraform ${{ matrix.env }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        env: [aws, gcp, local-docker]
+    defaults:
+      run:
+        working-directory: terraform/environments/${{ matrix.env }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: terraform fmt
+        run: terraform fmt -check -recursive ../../
+
+      - name: terraform init
+        run: terraform init -backend=false -input=false
+
+      - name: terraform validate
+        run: terraform validate
+
+      # Plan con proveedor simulado: comprueba las 32 VMs y el clúster
+      # sin necesidad de credenciales de AWS/GCP.
+      - name: terraform test (plan con mocks)
+        if: matrix.env != 'local-docker'
+        run: terraform test -verbose
+
+  docker-fleet:
+    name: 32 VMs en Docker (terraform apply)
+    runs-on: ubuntu-latest
+    needs: [app, terraform]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: Desplegar, verificar y destruir la flota
+        run: bash scripts/test-local.sh
+
+  kubernetes:
+    name: Kubernetes (kind) + overlays AWS/GCP
+    runs-on: ubuntu-latest
+    needs: [app]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Crear clúster kind
+        uses: helm/kind-action@v1
+        with:
+          cluster_name: semana09
+
+      - name: Construir y cargar imagen
+        run: |
+          docker build -t "$IMAGE_LOCAL" app
+          kind load docker-image "$IMAGE_LOCAL" --name semana09
+
+      - name: Desplegar overlay local
+        run: |
+          kubectl apply -k k8s/overlays/local
+          kubectl -n semana09 rollout status deploy/semana09-app --timeout=120s
+          kubectl -n semana09 get pods -o wide
+
+      - name: Probar el Service
+        run: |
+          kubectl -n semana09 port-forward svc/semana09-app 9090:80 &
+          sleep 5
+          curl -fsS localhost:9090/ | tee /tmp/k8s.json
+          grep -q '"cloud": "kind-local"' /tmp/k8s.json
+
+      - name: Validar overlays AWS y GCP contra el API server
+        run: |
+          for cloud in aws gcp; do
+            echo "== $cloud"
+            kubectl kustomize "k8s/overlays/$cloud" > "/tmp/$cloud.yaml"
+            kubectl apply --dry-run=server -f "/tmp/$cloud.yaml"
+          done

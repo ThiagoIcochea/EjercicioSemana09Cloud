@@ -1,0 +1,11 @@
+project_id        = "mi-proyecto-gcp"
+region            = "us-central1"
+environment       = "dev"
+ssh_allowed_cidrs = ["203.0.113.10/32"]
+
+vm_groups = {
+  web    = 8
+  api    = 8
+  worker = 8
+  data   = 8
+}

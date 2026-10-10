@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: semana09-app
+spec:
+  selector:
+    app: semana09-app
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

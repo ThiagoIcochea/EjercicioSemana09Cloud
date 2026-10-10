@@ -1,0 +1,17 @@
+#!/bin/bash
+# Arranque común para las VMs de AWS y GCP:
+# instala Docker y levanta el contenedor de la aplicación.
+set -euxo pipefail
+
+if ! command -v docker >/dev/null 2>&1; then
+  curl -fsSL https://get.docker.com | sh
+fi
+systemctl enable --now docker
+
+docker rm -f app >/dev/null 2>&1 || true
+docker run -d --name app --restart unless-stopped \
+  -p ${app_port}:8080 \
+  -e CLOUD_PROVIDER=${cloud} \
+  -e VM_NAME=${vm_name} \
+  -e VM_ROLE=${vm_role} \
+  ${container_image}

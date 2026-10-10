@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../base
+images:
+  - name: semana09-app
+    newName: ghcr.io/thiagoicochea/ejerciciosemana09cloud
+    newTag: latest
+configMapGenerator:
+  - name: semana09-config
+    behavior: replace
+    literals:
+      - CLOUD_PROVIDER=aws-eks
+patches:
+  - path: service-patch.yaml
